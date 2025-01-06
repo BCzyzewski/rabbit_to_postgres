@@ -1,0 +1,44 @@
+version: '3.9'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq_stream
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbitmq_stream advertised_host rabbitmq"
+
+    ports:
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # Management UI
+      - "5552:5552"     # RabbitMQ Stream protocol
+
+    command: >
+      bash -c "rabbitmq-plugins enable rabbitmq_stream &&
+               rabbitmq-server"
+
+  python-sender:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: python_sender
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: tail -f /dev/null
+    depends_on:
+      - rabbitmq
+
+  python-receiver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: python_receiver
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: tail -f /dev/null
+    depends_on:
+      - rabbitmq
